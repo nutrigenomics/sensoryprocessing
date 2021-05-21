@@ -76,7 +76,8 @@ linecount = 0
 
 # This for-loop reads in every .txt file in the directory. This means that your directory needs
 # to contain *only* text files into which you have copy and pasted the all the text from a given
-# sensory PDF report, one text file per PDF report.
+# sensory PDF report, one text file per PDF report. This .pdf -> .txt conversion can be automated in some cases,
+# but this set of nested loops assumes that automation or manual conversion occurred before running this script.
 
 for filename in os.listdir('/***your textfile containing direcotry here***/'):
     record = [] # Start a new list called, "record" that is the record for this .txt file/family
