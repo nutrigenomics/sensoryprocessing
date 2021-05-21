@@ -1,0 +1,195 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+import numpy as np
+import pandas as pd
+
+# Create an empty dataset
+data = []
+
+# First, create a series of lists representing the actual categories from PDF text
+# and their associated abbreviations to make variable naming less cumbersome
+
+recordspecs = ["Examinee ID: ",
+               "Gender: ",
+               "Birth Date: ",
+               "Relationship to Child: ",
+               "Administration Date: ",
+               "Age at Administration: ",
+               "School Grade: ",
+               "AUDITORY Raw Score ",
+               "VISUAL Raw Score ",
+               "TOUCH Raw Score ",
+               "MOVEMENT Raw Score ",
+               "BODY POSITION Raw Score ",
+               "ORAL SENSORY Raw Score ",
+               "CONDUCT Raw Score ",
+               "SOCIAL EMOTIONAL Raw Score ",
+               "ATTENTIONAL Raw Score "
+              ]
+
+recordabbrev = ["userid",
+               "gender",
+               "dob",
+               "reltochild",
+               "admindate",
+                "ageatadmin",
+               "grade"]
+
+rawscores = ["AUDITORY Raw Score ",
+                 "VISUAL Raw Score ",
+                 "TOUCH Raw Score ",
+               "MOVEMENT Raw Score ",
+               "BODY POSITION Raw Score ",
+               "ORAL SENSORY Raw Score ",
+               "CONDUCT Raw Score ",
+               "SOCIAL EMOTIONAL Raw Score ",
+               "ATTENTIONAL Raw Score "
+              ]
+
+rawabbrev = ["auditory",
+            "visual",
+            "touch",
+            "movement",
+            "bodypos",
+            "oral",
+            "conduct",
+            "social",
+            "attentional"]
+
+quadrantscores = ["Seeking/Seeker ",
+                 "Avoiding/Avoider ",
+                 "Sensitivity/Sensor ",
+                 "Registration/Bystander "]
+
+quadrantabbrev = ["seeker",
+                 "avoider",
+                 "sensor",
+                 "bystander"]
+
+# Concatenate the abbreviations for the scores into a single abbreviations list, for later
+abbrev = quadrantabbrev + rawabbrev
+
+# Start a line count at zero so that lines containing quadrant score titles and nothing else
+# won't be parsed in the below nested for-loop
+linecount = 0
+
+# This for-loop reads in every .txt file in the directory. This means that your directory needs
+# to contain *only* text files into which you have copy and pasted the all the text from a given
+# sensory PDF report, one text file per PDF report.
+
+for filename in os.listdir('/***your textfile containing direcotry here***/'):
+    record = [] # Start a new list called, "record" that is the record for this .txt file/family
+    path = '/***your textfile containing direcotry here***/' + str(filename) # Make a complete path string to open the file
+    
+    with open(path) as f: # Open the file
+        
+        for line in f: # For each line in the file text
+            linecount = linecount + 1 # Increase the line count by one
+            
+            # Now to parse two different styles of text line by first matching lines
+            # containing the text found in the lists recordspects and quadrantscores
+            for i in range(len(recordspecs)): # First go through the recordspecs list to parse
+                keyword = recordspecs[i] # The keyword for this parsing set
+                                         # is the i'th item in recordspecs
+                if keyword in line: # If that keyword is in the line:
+                    spl_word = keyword # That keyword becomes the split point
+                    recorditem = line.partition(spl_word)[2] # and everything after that keyword is the record item
+                    recorditem = recorditem.strip() # Strip the record item of any stray newlines ('\n')
+                    record.append(recorditem) # Add the record item to the list, record, initialized at the beginning of the loops
+                    print(str(keyword) + str(recorditem)) # Print to terminal statement as early sanity check
+            
+            for i in range(len(quadrantscores)): # Go through the quadrant scores to parse
+                if (linecount > 100): # If the line count is > 100, continue
+                    keyword = quadrantscores[i] # The keyword for this parsing set
+                                                # is the i'th item in quadrant scores
+                    if keyword in line: # If that keyword is in the line:
+                        spl_word = keyword # That keyword becomes the split point
+                        recorditem = line.partition(spl_word)[2] # and everything after that keyword is the initial record item
+                        recorditem = recorditem.strip() # Strip the record item of any straw newlines ('\n')
+                        score = recorditem[0:1] # Save the first 2 characters in the record item (the raw score) as the record item
+                        record.append(score) # Add the record item to the list, record, initialized at the beginning of the loops
+                        print(str(keyword) + str(recorditem)) # Print to terminal statement as early sanity check
+                        
+        data.append(record) # Now that you've created a whole record for a family, append that whole record to your dataset
+        print("\n\nEnd record parsing. Record " + str(filename) + " saved to folder.\n\n") # Print to terminal to verify
+                                                                                           # end of parsing for that record
+
+print(data) # Print the entire dataset (which will look like a clunky list of lists because it's not pandas-pretty yet)
+
+# Convert your dataset into a Python pandas (as pd) dataframe
+dataframe = (pd.DataFrame(data))
+
+# Concatenate all abbrevations to be a full list of desired column names
+columnnames = recordabbrev + rawabbrev + quadrantabbrev
+
+# Tell pandas to assign those column names to the columns
+dataframe.columns = columnnames
+
+
+# Classifying the category-specific quantiles based upon score per category
+
+quantilelists = [[0, 6.5, 19.5, 47.5, 60.5, 95], # Seeking quantiles
+                 [0, 7.5, 20.5, 46.5, 59.5, 100], # Avoiding quantiles
+                 [0, 6.5, 17.5, 42.5, 53.5, 95], # Sensititivity quantiles
+                 [0, 6.5, 18.5, 43.5, 55.5, 110], # Bystander quantiles
+                 [0, 2.5, 9.5, 24.5, 31.5, 40], # Auditory quantiles
+                 [0, 4.5, 8.5, 17.5, 21.5, 30], # Visual quantiles
+                 [0,  0.5, 7.5, 21.5, 28.5, 55], # Touch quantiles
+                 [0, 1.5, 6.5, 18.5, 24.5, 40], # Movement quantiles
+                 [-np.inf, 0.5, 4.5, 15.5, 19.5, 40], # Body position quantiles
+                 [-np.inf, -0.5, 7.5, 24.5, 32.5, 50], # Oral quantiles
+                 [0, 1.5, 8.5, 22.5, 29.5, 45], # Conduct quantiles
+                 [0, 2.5, 12.5, 31.5, 41.5, 70], # Social/emotional quantiles
+                 [-np.inf, 0.5, 8.5, 24.5, 31.5, 50]] # Attentional quantiles
+
+# Create a dictionary for specific columns to be designated as needing to 
+# be converted to integer (vs. string data type) in preparation for the
+# raw score values to be evaluated and classified. This was spelled out more explicitly
+# so that future dictionary type conversions are easily added by column name.
+
+convert_dict = {"seeker": int,
+                "avoider": int,
+                "sensor": int,
+                "bystander": int,
+                "auditory": int,
+                "visual": int,
+                "touch": int,
+                "movement": int,
+                "bodypos": int,
+                "oral": int,
+                "conduct": int,
+                "social": int,
+                "attentional": int }
+
+# Run the .astype function on the dataframe to convert the columns listed
+# above to integer type
+dataframe = dataframe.astype(convert_dict)
+
+# Read in the quantile numberes from quantile lists and for each list,
+# read in the classifier list bucketnames, and add the string "_class"
+# to the end of the abbreviation for this new column of data, in which
+# the classification is assigned according to appropriate quantile specs
+# for that item.
+
+for i in range(len(quantilelists)):
+    buckets = quantilelists[i]
+    bucketnames = ['muchless', 'less', 'same', 'more', 'muchmore']
+    classname = str(abbrev[i]) + "_class"
+    dataframe[classname] = (pd.cut(dataframe[abbrev[i]], buckets, labels = bucketnames))
+
+
+# Print the dataframe to terminal as a sanity check, and save it to CSV
+# with the filename of choice (in this case sensorydata.csv), to the
+# directory of choice (in this case, my desktop)
+
+print(dataframe)
+
+# Index = True is an added argument telling the CSV converter to retain the assigned
+# column names in the created CSV. These can be ditched later, but it's nice to keep
+# them until ditching is absolutely needed. It also makes this csv easier to process
+# later, in Python using pandas or in R, probably with dplyr.
+
+CSV = dataframe.to_csv("/**desired directory and .csv filename***", index = True)
+print("CSV file created.", CSV)
+
